@@ -1,37 +1,91 @@
+// internet-of-thing
+// Daniel Gilbert
+// loglow@gmail.com
+// Copyright 2015
+
+
+
+//=============================================================================
+// INCLUDES
+//=============================================================================
+
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 
+
+
+//=============================================================================
+// DEFINES
+//=============================================================================
+
+// Define used GPIO pins
 #define RELAY_PIN 2
 
+
+
+//=============================================================================
+// GLOBALS
+//=============================================================================
+
+// Base name of the device
 String device_name = "Switch";
 
+// Create webserver object
 ESP8266WebServer server(80);
 
+// Stores current state of relay
 uint8_t switch_on = 0;
 
+
+
+//=============================================================================
+// SETUP
+//=============================================================================
+
 void setup() {
+
+	// Setup and init GPIO pins
 	pinMode(RELAY_PIN, OUTPUT);
 	digitalWrite(RELAY_PIN, LOW);
 
+	// Build unique device name from base name
+	// and the last 6 chars of the mac address
 	String s = WiFi.macAddress();
 	s.replace(":", "");
 	device_name += "-"+s.substring(6);
 
-	setup_server();
-	WiFi.softAP(device_name.c_str());
-	sta_connect("", "");
-}
-
-void loop() {
-	server.handleClient();
-}
-
-void setup_server() {
+	// Setup and start the webserver
 	server.on("/", serve_root);
 	server.on("/style.css", serve_style_css);
 	server.on("/normalize.css", serve_normalize_css);
 	server.begin();
+	
+	// Enable the device-created access point
+	// with no password, aka open network
+	WiFi.softAP(device_name.c_str());
+
+	// Attempt to connect to the last-known wireless network
+	// SSID and password are stored in non-volatile memory
+	sta_connect("", "");
 }
+
+
+
+//=============================================================================
+// MAIN LOOP
+//=============================================================================
+
+void loop() {
+
+	// Process any pending webserver actions
+	server.handleClient();
+}
+
+
+
+//=============================================================================
+// FUNCTIONS
+//=============================================================================
 
 void sta_connect(String ssid, String password) {
 	if(!ssid) WiFi.begin();
@@ -141,3 +195,5 @@ void serve_normalize_css() {
 	String s = "/*! normalize.css v3.0.3 | MIT License | github.com/necolas/normalize.css */html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}audio,canvas,progress,video{display:inline-block;vertical-align:baseline}audio:not([controls]){display:none;height:0}[hidden],template{display:none}a{background-color:transparent}a:active,a:hover{outline:0}abbr[title]{border-bottom:1px dotted}b,strong{font-weight:bold}dfn{font-style:italic}h1{font-size:2em;margin:.67em 0}mark{background:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sup{top:-0.5em}sub{bottom:-0.25em}img{border:0}svg:not(:root){overflow:hidden}figure{margin:1em 40px}hr{box-sizing:content-box;height:0}pre{overflow:auto}code,kbd,pre,samp{font-family:monospace,monospace;font-size:1em}button,input,optgroup,select,textarea{color:inherit;font:inherit;margin:0}button{overflow:visible}button,select{text-transform:none}button,html input[type=\"button\"],input[type=\"reset\"],input[type=\"submit\"]{-webkit-appearance:button;cursor:pointer}button[disabled],html input[disabled]{cursor:default}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input{line-height:normal}input[type=\"checkbox\"],input[type=\"radio\"]{box-sizing:border-box;padding:0}input[type=\"number\"]::-webkit-inner-spin-button,input[type=\"number\"]::-webkit-outer-spin-button{height:auto}input[type=\"search\"]{-webkit-appearance:textfield;box-sizing:content-box}input[type=\"search\"]::-webkit-search-cancel-button,input[type=\"search\"]::-webkit-search-decoration{-webkit-appearance:none}fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}legend{border:0;padding:0}textarea{overflow:auto}optgroup{font-weight:bold}table{border-collapse:collapse;border-spacing:0}td,th{padding:0}";
 	server.send(200, "text/css", s);
 }
+
+// EOF
